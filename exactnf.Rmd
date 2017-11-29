@@ -1,28 +1,88 @@
 ---
-title: "nov29"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r}
+#### generate bipartite matrix
+library(arules)
+library(knitr)
+library(Matrix)
+nItems = 25
+
+set.seed(3)
+############ SIMULATE TRANSACTIONS (using Agrawal method) ############
+nTrans = 10
+# generate random itemsets and give them a probability distribution
+patterns <- random.patterns(nItems = nItems, nPats = 5, corr = 0, 
+                            lPats = 2, cmean = .5, cvar = 0.1)
+
+data = list()
+for (i in 1:nTrans) {
+  j = rpois(1,1)+1 # how many itemsets does the transaction contain (add one to avoid empty transactions)
+  k = findInterval(runif(j), cumsum(patterns@quality$pWeights)) + 1 # which itemsets #######
+  trans1 = c()
+    for (q in 1:length(k)) {
+      trans1 = c(trans1,patterns@items@itemInfo$labels[which(patterns@items@data[,k[q]]==TRUE)])
+    }
+  data[[i]] = unique(trans1)
+}
+data
+data <- as(data, "transactions") # coerce to transaction data structure
+
+M = t(array(as.numeric(data@data), dim = c(data@data@Dim[1],data@data@Dim[2])))
+
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# toy dataset
+data <- list(
+c("a","b","c"),
+c("a","b"),
+c("a","b","d"),
+c("b","e"),
+c("b","c","e"),
+c("a","d","e"),
+c("a","c"),
+c("a","b","d"),
+c("c","e"),
+c("a","b","d","e"),
+c("a",'b','e','c')
+)
+data <- as(data, "transactions")
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+M = t(array(as.numeric(data@data), dim = c(data@data@Dim[1],data@data@Dim[2])))
 
-```{r cars}
-summary(cars)
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
+```{r}
+## construct adjacency matrix
+k = dim(M)[1] # edges (V1)
+n = dim(M)[2] # nodes (V2)
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+# adjacency matrix
+Ma = matrix(0,ncol=n+k, nrow=n+k)
+Ma[1:k,(k+1):(k+n)] = M
+Ma[(k+1):(k+n),1:k] = t(M)
+
+# transition matrix
+Pa = t(Ma/colSums(Ma))
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r}
+# algorithm - Exact NF
+
+
+ua = array(0,dim=c(k+n,1))
+ua[1] = 1
+for(i in 1:100) {
+  u1 = Pa %*% ua
+  ua = u1
+}
+```
+
+
+
+
