@@ -68,19 +68,28 @@ Ma[(k+1):(k+n),1:k] = t(M)
 
 # transition matrix
 Pa = t(Ma/colSums(Ma))
-
 ```
 
 ```{r}
 # algorithm - Exact NF
+norm_vec <- function(x) sqrt(sum(x^2)) # calculates the 
 
-
-ua = array(0,dim=c(k+n,1))
-ua[1] = 1
-for(i in 1:100) {
-  u1 = Pa %*% ua
-  ua = u1
+exact_NF = function(Ma, c, tol = 1e-6) {
+  mat = array(0, dim = c(k,k))
+  ua = array(0,dim=c(k+n,1))
+  for (i in 1:k) {
+    ua[i] = 1
+    query = ua
+    repeat {
+        q = ua 
+        ua = (1-c) * Pa %*% q + c * query
+        if (abs(norm_vec(ua)-norm_vec(q)) < tol) break
+    }
+    mat[,i] = ua[1:k]
+  }
+  return(mat)
 }
+
 ```
 
 
